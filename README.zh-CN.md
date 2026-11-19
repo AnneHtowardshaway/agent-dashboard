@@ -20,13 +20,13 @@
 | 宿主 | 数据与界面 | 使用方式 |
 | --- | --- | --- |
 | Antigravity / 反重力（`agy`） | 输入栏控件、原生侧面板、速度、缓存、上下文、账号额度与历史用量。统一采集器也可读取 sidecar 历史快照。 | 安装桌面 sidecar。独立 IDE 与 CLI 使用下方各自的安装入口。 |
-| Codex（`codex`） | 从本地会话读取 Token、缓存、上下文和可用额度数据，展示于统一面板；支持通过本地 CDP 端点挂载输入栏控件。 | 构建采集器并启动 daemon。输入栏挂载需要该实例具有可发现的 loopback 调试端口。 |
+| Codex（`codex`） | 从本地会话读取 Token、缓存、上下文和可用额度数据，展示于统一面板；支持通过本地 CDP 端点挂载输入栏控件。 | 构建采集器并启动本地面板。输入栏挂载需要该实例具有可发现的 loopback 调试端口。 |
 
 反重力宿主内的插件名称为 **Antigrative Dashboard**。Codex 会话发现覆盖标准会话目录、归档会话和支持的隔离实例目录；内联连接可用时，各窗口按自己的会话显示指标。
 
 ## 源码快速开始
 
-需要 Python 3.10+、Node.js 24 和 Rust/Cargo。Windows 将以下命令中的 `python3` 换成 `python`。
+需要 Python 3.10+、Node.js 24 和 Rust/Cargo。Windows 将以下命令中的 `python3` 换成 `python`，构建后使用 `bin/ag-pulse.exe serve` 启动前台面板。
 
 ```sh
 git clone https://github.com/AnneHtowardshaway/agent-dashboard.git
@@ -36,7 +36,7 @@ python3 manage.py status-hosts
 python3 manage.py daemon start
 ```
 
-浏览器打开 `http://127.0.0.1:19527` 查看统一面板。使用 `python3 manage.py daemon status` 检查状态，`python3 manage.py daemon stop` 停止后台采集器。
+浏览器打开 `http://127.0.0.1:19527` 查看统一面板。Unix 后台模式使用 `python3 manage.py daemon status` 检查状态，`python3 manage.py daemon stop` 停止采集器；Windows 前台服务使用 Ctrl+C 停止。
 
 ### Antigravity / 反重力
 
@@ -56,9 +56,11 @@ Daemon 从本机 Codex 会话文件采集。可展示的指标取决于该会话
 
 ### 当前验证范围
 
+Windows 的 Antigravity App、独立 IDE 和 CLI 具有平台适配及自动化验证。Codex 在 Windows 可通过 `bin/ag-pulse.exe status --host codex --json` 读取本地会话，使用 `bin/ag-pulse.exe serve` 打开统一面板。当前 Codex 自动内联发现和后台 daemon 采用 Unix 实现，Windows 的这两条路径仍待适配。
+
 最近一次 macOS 检查使用 Antigravity 2.33.0，验证了原生面板、配额刷新和已有历史用量。三组空闲 sidecar 对照的物理内存中位数从 35.28 降到 28.67 MiB。该宿主的真实内联挂载和新消息记账仍待验收。Codex 解析、有界统计与浏览器挂载具有本地夹具覆盖；Windows/Linux 的验收范围按适配器区分，见[兼容性](COMPATIBILITY.md)。
 
-当前本地回归为 Node 486 项通过、1 项跳过，IDE 67 项通过，Python 93 项通过、2 项跳过，Rust 9 项通过。两项既有浏览器断言仍失败，涉及 `tok/toks` 文案与空闲 DOM 变更数。
+当前本地回归为 Node 486 项通过、1 项跳过，IDE 67 项通过，Python 94 项通过、2 项跳过，Rust 9 项通过。浏览器回归覆盖面板与内联控件、子代理 Full View、紧凑 Token 显示，以及轮询期间的滚动位置和空闲 DOM 稳定性。
 
 ## 看看效果
 

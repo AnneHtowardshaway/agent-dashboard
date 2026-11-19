@@ -181,12 +181,13 @@ def uninstall():
     print('Fully quit and reopen Antigravity to unload the UI adapter.')
 
 
-RUST_BIN = SOURCE / 'bin' / 'ag-pulse'
+# Windows 产物带 .exe，构建、查找与状态查询共用同一文件名。
+RUST_BIN = SOURCE / 'bin' / ('ag-pulse.exe' if sys.platform == 'win32' else 'ag-pulse')
 
 
 def rust_binary():
     """Locate the compiled collector, preferring the packaged copy."""
-    candidate = RUST_BIN if RUST_BIN.is_file() else SOURCE / 'target' / 'release' / 'ag-pulse'
+    candidate = RUST_BIN if RUST_BIN.is_file() else SOURCE / 'target' / 'release' / RUST_BIN.name
     if not candidate.is_file():
         raise RuntimeError('ag-pulse is not built; run: python3 manage.py build-rust')
     return candidate
@@ -200,7 +201,7 @@ def build_rust():
     # Replace atomically: writing over a running signed binary makes macOS
     # kill every later exec of that inode with SIGKILL ("Killed: 9").
     staged = RUST_BIN.with_name(RUST_BIN.name + '.staging')
-    shutil.copy2(SOURCE / 'target' / 'release' / 'ag-pulse', staged)
+    shutil.copy2(SOURCE / 'target' / 'release' / RUST_BIN.name, staged)
     os.replace(staged, RUST_BIN)
     print('Binary:', RUST_BIN)
 
@@ -233,7 +234,7 @@ def status():
                'integrationMode': json_read(SETTINGS).get('mode', 'legacy'),
                'inlineIntegration': json_read(health_file, None),
                'toolbarAdapterRecoverable': APP.exists() and original_for_current(APP.read_bytes()) is not None}
-    binary = RUST_BIN if RUST_BIN.is_file() else SOURCE / 'target' / 'release' / 'ag-pulse'
+    binary = RUST_BIN if RUST_BIN.is_file() else SOURCE / 'target' / 'release' / RUST_BIN.name
     if binary.is_file():
         try:
             output = subprocess.run([str(binary), 'status', '--json'], check=True, capture_output=True, text=True).stdout

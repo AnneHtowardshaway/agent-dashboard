@@ -60,7 +60,7 @@ try{
   assert.equal(await view.locator('#panel-version').textContent(),'v'+releaseVersion);
   assert.equal(await view.locator('#panel-name').getAttribute('title'),'Antigrative Dashboard v'+releaseVersion);
   await view.locator('#strip-context').filter({hasText:'20%'}).waitFor();
-  assert.equal(await view.locator('#context-tokens').textContent(),'20K / 100K tok');
+  assert.equal(await view.locator('#context-tokens').textContent(),'20K / 100K toks');
   assert.equal(await view.locator('#context-provider-limit,#context-compaction-limit,#context-host-limit,#context-note,#transcript-details').count(),0,'Compact context omits duplicate capacities and diagnostic prose');
   await view.locator('#strip-tps').filter({hasText:'38.7'}).waitFor();
   assert.deepEqual(await view.locator('.metric-label span').allTextContents(),['Speed','Cache','Context']);
@@ -86,14 +86,14 @@ try{
    assert.equal(await view.locator('body').evaluate(e=>getComputedStyle(e).backgroundColor===getComputedStyle(document.querySelector('.widget')).backgroundColor),true,'SDK inline body background follows the dashboard theme');
   }
   await view.locator('#language-toggle').click();await view.locator('[data-language-menu] [data-language="zh-CN"]').click();await view.locator('#language-toggle').filter({hasText:'中'}).waitFor();
-  assert.equal(await view.locator('#context-tokens').textContent(),'20K / 100K tok');
+  assert.equal(await view.locator('#context-tokens').textContent(),'20K / 100K toks');
   assert.equal(await view.locator('#strip-context').textContent(),'20%');
   assert.deepEqual(await view.locator('.metric-label span').allTextContents(),['速度','缓存','上下文']);
   assert.deepEqual(await frame(),initialFrame,'Language switches must not resize the frame');
   await view.locator('#language-toggle').click();await page.keyboard.press('End');await page.keyboard.press('Enter');
   await view.locator('#language-toggle').filter({hasText:'繁'}).waitFor();
   assert.deepEqual(await view.locator('.metric-label span').allTextContents(),['速率','快取','上下文']);
-  assert.deepEqual(await frame(),initialFrame);assert.equal(await view.locator('#context-tokens').textContent(),'20K / 100K tok');
+  assert.deepEqual(await frame(),initialFrame);assert.equal(await view.locator('#context-tokens').textContent(),'20K / 100K toks');
   await view.locator('#language-toggle').click();await page.keyboard.press('Escape');
   assert.equal(await view.locator('[data-language-menu]').evaluate(e=>e.matches(':popover-open')),false);
   await view.locator('#language-toggle').click();await view.locator('[data-language-menu] [data-language="zh-CN"]').click();

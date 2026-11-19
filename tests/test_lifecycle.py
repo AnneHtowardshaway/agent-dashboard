@@ -122,6 +122,25 @@ class LifecycleTests(unittest.TestCase):
             self.assertFalse(any(name.startswith('antigrative-dashboard/docs/') for name in names))
         self.assertTrue(output.with_suffix('.zip.sha256').exists())
 
+    def test_native_build_stages_and_locates_platform_binary_names(self):
+        for name in ['ag-pulse', 'ag-pulse.exe']:
+            with self.subTest(binary=name):
+                source = self.home / name
+                compiled = source / 'target' / 'release' / name
+                compiled.parent.mkdir(parents=True)
+                compiled.write_bytes(b'new compiled collector')
+                installed = source / 'bin' / name
+                with patch.multiple(manager, SOURCE=source, RUST_BIN=installed):
+                    self.assertEqual(manager.rust_binary(), compiled)
+                    with patch.object(manager.subprocess, 'run') as run:
+                        manager.build_rust()
+                    self.assertEqual(run.call_count, 2)
+                    self.assertEqual(installed.read_bytes(), compiled.read_bytes())
+                    self.assertEqual(manager.rust_binary(), installed)
+                    self.assertFalse(installed.with_name(name + '.staging').exists())
+                    compiled.unlink()
+                    self.assertEqual(manager.rust_binary(), installed)
+
     def test_history_and_sdk_records_are_excluded_even_if_inside_source(self):
         source = self.home / 'fixture-source'
         manager.atomic_json(source / 'plugin.json', {'version': 'test'})

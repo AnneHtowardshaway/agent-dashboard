@@ -2,7 +2,7 @@
 (function () {
   if (window.__agPulseInjected) return;
   window.__agPulseInjected = true;
-  window.__AG_PULSE_BUNDLE_REV = 1795071256481;
+  window.__AG_PULSE_BUNDLE_REV = 1795079246179;
   var HOST = window.__AG_PULSE_HOST__ || 'codex';
   var pending = new Map();
   var sequence = 0;
@@ -1627,15 +1627,20 @@
   // containing block. Measure that block's origin and scale so the same
   // viewport-based placement works in Antigravity and Codex.
   function measureFixedLayer(element,width){
-    style(element,'left','0px');style(element,'top','0px');
-    const base=element.getBoundingClientRect();
-    const zoom=width>0&&base.width>1?base.width/width:1;
+    if(!element.style.left)style(element,'left','0px');
+    if(!element.style.top)style(element,'top','0px');
+    const rect=element.getBoundingClientRect();
+    const zoom=width>0&&rect.width>1?rect.width/width:1;
+    // 从现有坐标反推包含块原点，轮询定位时不再先把弹层移到零点。
+    const base={left:rect.left-parseFloat(element.style.left)*zoom,top:rect.top-parseFloat(element.style.top)*zoom};
     return {base,zoom};
   }
   function placeFixed(element,measure,left,top){
     const {base,zoom}=measure;
-    style(element,'left',`${(left-base.left)/zoom}px`);
-    style(element,'top',`${(top-base.top)/zoom}px`);
+    const x=(left-base.left)/zoom,y=(top-base.top)/zoom;
+    // 忽略布局坐标量化产生的微小误差，避免空闲轮询不断写回同一位置。
+    if(Math.abs(parseFloat(element.style.left)-x)>1/32)style(element,'left',`${x}px`);
+    if(Math.abs(parseFloat(element.style.top)-y)>1/32)style(element,'top',`${y}px`);
   }
   function position(){
     positionGuide();
@@ -1645,8 +1650,8 @@
     const measure=measureFixedLayer(card,width);
     const roomAbove=rect.top-21,roomBelow=window.innerHeight-rect.bottom-21;
     style(card,'overflow-y','auto');
-    style(card,'max-height','none');
-    const contentHeight=card.getBoundingClientRect().height;
+    // scrollHeight 包含被裁切的内容，直接测量可避免临时撑开后丢失滚动位置。
+    const contentHeight=(card.scrollHeight+card.offsetHeight-card.clientHeight)*measure.zoom;
     const useAbove=cardSide?cardSide==='above':(contentHeight<=roomAbove||roomAbove>=roomBelow);
     cardSide=useAbove?'above':'below';
     style(card,'max-height',`${Math.max(80,(useAbove?roomAbove:roomBelow)/measure.zoom)}px`);
@@ -1662,8 +1667,7 @@
     style(tip,'width',`${width}px`);
     const measure=measureFixedLayer(tip,width);
     const above=rect.top-22,below=innerHeight-rect.bottom-22;
-    style(tip,'max-height','none');
-    const height=tip.getBoundingClientRect().height;
+    const height=(tip.scrollHeight+tip.offsetHeight-tip.clientHeight)*measure.zoom;
     const useAbove=height<=above||above>=below;
     style(tip,'max-height',`${Math.max(80,(useAbove?above:below)/measure.zoom)}px`);
     const finalHeight=tip.getBoundingClientRect().height;

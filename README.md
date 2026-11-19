@@ -20,13 +20,13 @@ Local usage and performance dashboard for Antigravity and Codex.
 | Host | Data and interface | Setup |
 | --- | --- | --- |
 | Antigravity (`agy`) | Composer widget, native side panel, speed, cache, context, account quotas and saved usage. The unified collector also reads sidecar history. | Install the desktop sidecar. Standalone IDE and CLI adapters have their own installation commands below. |
-| Codex (`codex`) | Local session token usage, cache, context and available rate-limit data in the unified dashboard. An inline widget can attach through a local CDP endpoint. | Build the collector and start its daemon. Inline attachment requires a discoverable loopback debugging port for that instance. |
+| Codex (`codex`) | Local session token usage, cache, context and available rate-limit data in the unified dashboard. An inline widget can attach through a local CDP endpoint. | Build the collector and start the local dashboard. Inline attachment requires a discoverable loopback debugging port for that instance. |
 
 The Antigravity adapter appears as **Antigrative Dashboard** in the host. Codex session discovery includes the standard session directory, archived sessions and supported isolated instance directories. Each window resolves its own conversation when an inline connection is available.
 
 ## Quick start
 
-Source builds require Python 3.10+, Node.js 24 and Rust/Cargo. On Windows, use `python` in place of `python3`.
+Source builds require Python 3.10+, Node.js 24 and Rust/Cargo. On Windows, use `python` in place of `python3` and start the foreground dashboard with `bin/ag-pulse.exe serve` after building.
 
 ```sh
 git clone https://github.com/AnneHtowardshaway/agent-dashboard.git
@@ -36,7 +36,7 @@ python3 manage.py status-hosts
 python3 manage.py daemon start
 ```
 
-Open `http://127.0.0.1:19527` for the unified dashboard. `python3 manage.py daemon status` checks the daemon and `python3 manage.py daemon stop` stops it.
+Open `http://127.0.0.1:19527` for the unified dashboard. On Unix, `python3 manage.py daemon status` checks the daemon and `python3 manage.py daemon stop` stops it. Stop the Windows foreground server with Ctrl+C.
 
 ### Antigravity
 
@@ -56,9 +56,11 @@ The daemon reads local Codex session files. Available metrics depend on the fiel
 
 ### Verification scope
 
+The Antigravity App, standalone IDE and CLI have Windows adapters and automated coverage. On Windows, Codex sessions can be read with `bin/ag-pulse.exe status --host codex --json` and displayed with `bin/ag-pulse.exe serve`. Codex automatic inline discovery and the background daemon currently use Unix implementations and still require Windows adaptation.
+
 The latest macOS check used Antigravity 2.33.0 and verified the native panel, quota refresh and existing usage records. Three idle sidecar comparisons reduced median physical footprint from 35.28 to 28.67 MiB. Real inline mounting and new-message accounting on that host remain pending. Codex parsing, bounded aggregation and browser mounting have local fixture coverage. Windows/Linux acceptance varies by adapter as detailed in [Compatibility](COMPATIBILITY.md).
 
-The current local regression has 486 Node tests passing with one skipped, 67 IDE tests passing, 93 Python tests passing with two skipped, and 9 Rust tests passing. Two existing browser assertions still fail on `tok/toks` wording and idle DOM mutations.
+The current local regression has 486 Node tests passing with one skipped, 67 IDE tests passing, 94 Python tests passing with two skipped, and 9 Rust tests passing. Browser regressions cover panel and inline controls, subagent Full View, compact token counters, scroll preservation and idle DOM stability during polling.
 
 ## Preview
 

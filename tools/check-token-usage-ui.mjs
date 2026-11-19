@@ -65,12 +65,24 @@ try {
           return root?.getElementById(id)?.textContent===text;
         },{inline,id,text});
       };
-      try{await expectText('cache-output','90,629 tok');}catch(error){
+      // 紧凑数值、独立单位与完整计数提示分别验收。
+      const expectCounter=async(id,display,amount)=>{
+        await expectText(id,display);
+        const unit=scope.locator(`#${id}-unit`);
+        if(amount===null){assert.equal(await unit.isVisible(),false);return;}
+        const suffix=amount===1?'tok':'toks';
+        assert.equal(await unit.textContent(),(id==='cache-coverage'?'':' ')+suffix);
+        if(id!=='cache-coverage'){
+          const title=await scope.locator(`#${id}-cell`).getAttribute('title');
+          assert.ok(title.endsWith(`${amount.toLocaleString('en-US')} ${suffix}`));
+        }
+      };
+      try{await expectCounter('cache-output','90.6K',90629);}catch(error){
         console.log(JSON.stringify({inline,lang,errors,output:await scope.locator('#cache-output').textContent(),
           rate:await scope.locator(inline?'#samples':'#health-note').textContent(),
           note:await scope.locator('#cache-note').textContent()}));throw error;
       }
-      await expectText('cache-coverage','117,270 tok');
+      await expectCounter('cache-coverage','117,270',117270);
       if(inline)await scope.locator('[data-card=cache]').hover();
       else await scope.locator('[data-card=cache]').click();
       await scope.locator('#cache-card').waitFor({state:'visible'});
@@ -81,43 +93,43 @@ try {
       assert.ok(card&&card.y>=0&&card.y+card.height<=900,'Partial-data explanation stays inside viewport');
       await page.screenshot({path:join(output,`${inline?'inline':'panel'}-${lang}.png`)});
       speed=sample([known,...missing,request('new',{outputTokens:'500'})]);
-      await expectText('cache-output','91,129 tok');
-      await expectText('cache-coverage','117,770 tok');
+      await expectCounter('cache-output','91.1K',91129);
+      await expectCounter('cache-coverage','117,770',117770);
       speed=sample([request('output-only',{outputTokens:'200'})]);
-      await expectText('cache-output','200 tok');
-      await expectText('cache-miss','—');
+      await expectCounter('cache-output','200',200);
+      await expectCounter('cache-miss','—',null);
       await expectText(inline?'cache-detail-rate':'cache-rate','—');
       speed=sample([request('zero',{outputTokens:'0'})]);
-      await expectText('cache-output','0 tok');
-      await expectText('cache-coverage','0 tok');
+      await expectCounter('cache-output','0',0);
+      await expectCounter('cache-coverage','0',0);
       const saved=sample([known]);
       const fresh=sample([request('known',{outputTokens:'880'}),request('new',{outputTokens:'500'})]);
       speed=reconcileMetrics(saved,{...fresh,measuredRequests:0},'2026-10-13T00:00:00Z');
-      await expectText('cache-output','1,380 tok');
-      await expectText('cache-coverage','1,380 tok');
+      await expectCounter('cache-output','1.38K',1380);
+      await expectCounter('cache-coverage','1,380',1380);
       const legacy=structuredClone(partial);delete legacy.tokens;
       speed=safeMetrics(legacy,id);
-      await expectText('cache-output','90,629 tok');
-      await expectText('cache-coverage','117,270 tok');
+      await expectCounter('cache-output','90.6K',90629);
+      await expectCounter('cache-coverage','117,270',117270);
       assert.equal(speed.tokens.coverageUnknown,true,'Legacy/corrupt records keep conservative coverage internally');
       const corrupt=sample([known]);corrupt.tokens.outputTokens=1.5;
       speed=safeMetrics(corrupt,id);
-      await expectText('cache-output','—');
-      await expectText('cache-coverage','26,641 tok');
+      await expectCounter('cache-output','—',null);
+      await expectCounter('cache-coverage','26,641',26641);
       assert.equal(speed.tokens.coverageUnknown,true,'Legacy/corrupt records keep conservative coverage internally');
       speed=sample([request('zero-input',{apiProvider:'API_PROVIDER_GOOGLE_GEMINI',inputTokens:'0',outputTokens:'200'})]);
-      await expectText('cache-coverage','200 tok');await expectText('cache-output','200 tok');
-      await expectText('cache-miss','0 tok');await expectText('cache-read','0 tok');
+      await expectCounter('cache-coverage','200',200);await expectCounter('cache-output','200',200);
+      await expectCounter('cache-miss','0',0);await expectCounter('cache-read','0',0);
       await expectText(inline?'cache-detail-rate':'cache-rate','—');
       assert.equal(speed.cache.hitRate,null,'A zero denominator stays unavailable, not a fabricated cache percentage');
       assert.equal(await scope.locator('#cache-note').isVisible(),false);
       speed=sample([request('partial-input',{apiProvider:'API_PROVIDER_GOOGLE_GEMINI',inputTokens:'100',cacheReadTokens:'invalid',outputTokens:'200'})]);
-      await expectText('cache-coverage','300 tok');await expectText('cache-output','200 tok');
-      await expectText('cache-miss','100 tok');await expectText('cache-read','—');
+      await expectCounter('cache-coverage','300',300);await expectCounter('cache-output','200',200);
+      await expectCounter('cache-miss','100',100);await expectCounter('cache-read','—',null);
       speed=sample([request('cache-only',{apiProvider:'API_PROVIDER_GOOGLE_GEMINI',cacheReadTokens:'40',cacheWriteTokens:'5',outputTokens:'50'})]);
-      await expectText('cache-coverage','95 tok');await expectText('cache-miss','—');
-      await expectText('cache-read','40 tok');await expectText('cache-write','5 tok');
-      await expectText('cache-output','50 tok');
+      await expectCounter('cache-coverage','95',95);await expectCounter('cache-miss','—',null);
+      await expectCounter('cache-read','40',40);await expectText('cache-write','5 toks');
+      await expectCounter('cache-output','50',50);
       results.push({renderer:inline?'inline':'panel',language:lang,partial:true,continuedOutput:true,outputOnly:true,zero:true,independentHistory:true,legacyCoverage:true,corruptCounters:true,zeroInput:true,independentInput:true,cacheOnlyInput:true});
     }finally{await page.close();}
   }

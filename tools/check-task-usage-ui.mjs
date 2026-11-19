@@ -86,6 +86,10 @@ try {
         const root=inline?document.getElementById('ag-pulse-status-bar')?.shadowRoot:document;
         return root?.getElementById(id)?.textContent===text;
       },{inline,id,text});
+      const expectCoverage=async value=>{
+        await expectText('cache-coverage',value);
+        assert.equal(await scope.locator('#cache-coverage-unit').textContent(),'toks');
+      };
       const openCache=async()=>{await scope.locator('[data-card=cache]').click();await scope.locator('#cache-card').waitFor({state:'visible'});};
       const cacheChip=scope.locator('[data-card=cache]');
       const expectMarker=async(value,label)=>{
@@ -129,13 +133,13 @@ try {
       const expectOwn=async speed=>{
         await expectText(inline?'tps':'strip-tps',speed.tps.toFixed(1));
         await expectText(inline?'context-percent':'strip-context',`${Math.round(speed.context.usedFraction*100)}%`);
-        await expectText(inline?'tokens':'token-detail',`${speed.counts.responseOutput.toLocaleString('en-US')} / 0 tok`);
+        await expectText(inline?'tokens':'token-detail',`${speed.counts.responseOutput.toLocaleString('en-US')} / 0 toks`);
         assert.equal(await scope.locator(inline?'#samples':'#request-count').textContent(),inline?'2 turns · 7 steps · 1 samples':'1 samples');
         assert.equal(await scope.locator('#five-balance').textContent(),'80.0%');
         assert.equal(await scope.locator('#week-balance').textContent(),'60.0%');
       };
       await expectText('cache-note','Summing subagents…');await openCache();
-      await expectText('task-own','5,500 tok');await expectText('task-subagents','—');
+      await expectText('task-own','5,500 toks');await expectText('task-subagents','—');
       assert.equal(await scope.locator('#task-own-row').isVisible(),true);
       assert.equal(await scope.locator('#cache-note').isVisible(),true);
       await expectOwn(own);
@@ -144,7 +148,7 @@ try {
       // never present an old merged task total as the current one.
       snapshots[ids.root]=task(own,[],{state:'partial',subagents:2,loadedSubagents:0});
       await expectText('cache-note','Current agent only; subagent statistics unavailable.');
-      await expectText('cache-coverage','5,500 tok');await expectText('task-subagents','—');
+      await expectCoverage('5,500');await expectText('task-subagents','—');
       await expectMarker(true,'Current agent only; subagent statistics unavailable.');
       await page.screenshot({path:join(output,mode+'-current-only-en.png')});
       await chooseLanguage('zh-CN');await expectText('cache-note','仅当前代理；子代理统计暂不可用');await expectMarker(true,'仅当前代理；子代理统计暂不可用');
@@ -184,11 +188,15 @@ try {
       await chooseLanguage('zh-CN');await expectText('cache-note','正在汇总子代理…');
       assert.equal(await scope.locator('#task-own-row dt').textContent(),'当前代理');
       snapshots[ids.root]=task(own,[child,leaf]);
-      await expectText('cache-coverage','12,600 tok');await expectText('task-subagents','7,100 tok');
+      await expectCoverage('12,600');await expectText('task-subagents','7,100 toks');
       await expectText(inline?'cache-total':'strip-cache-total','12.6K tok');
       await expectText(inline?'cache-detail-rate':'cache-rate','67.6%');
-      await expectText('cache-read','7,500 tok');await expectText('cache-miss','3,500 tok');
-      await expectText('cache-write','100 tok');await expectText('cache-output','1,500 tok');
+      await expectText('cache-read','7.5K');await expectText('cache-miss','3.5K');
+      await expectText('cache-write','100 toks');await expectText('cache-output','1.5K');
+      for(const [field,total]of[['cache-read','7,500'],['cache-miss','3,500'],['cache-output','1,500']]){
+        assert.equal(await scope.locator(`#${field}-unit`).textContent(),' toks');
+        assert.ok((await scope.locator(`#${field}-cell`).getAttribute('title')).endsWith(`${total} toks`));
+      }
       assert.equal(await scope.locator('#cache-note').isVisible(),false,'Ready tasks show no explanatory prose');
       assert.equal(await scope.locator('#cache-write-row').isVisible(),true);
       assert.deepEqual(await scope.locator('#cache-card dl>div').evaluateAll(rows=>rows.slice(-2).map(row=>row.id)),['task-own-row','task-subagents-row']);
@@ -197,14 +205,14 @@ try {
 
       await chooseLanguage('zh-TW');assert.equal(await scope.locator('#task-own-row dt').textContent(),'目前代理');
       snapshots[ids.root]=task(own,[child],{state:'partial',subagents:2,loadedSubagents:1});
-      await expectText('cache-note','部分子代理暫時無法讀取');await expectText('task-subagents','5,900 tok');
+      await expectText('cache-note','部分子代理暫時無法讀取');await expectText('task-subagents','5,900 toks');
       await expectMarker(false,'僅目前代理；子代理統計暫時無法取得');
-      await expectText('cache-coverage','11,400 tok');
+      await expectCoverage('11,400');
       assert.equal(await scope.locator('#cache-write-row').isVisible(),false);
       await chooseLanguage('en');await expectText('cache-note','Some subagents unavailable');
       assert.equal(await scope.locator('#task-own-row dt').textContent(),'Current agent');
       await expectOwn(own);
-      snapshots[ids.root]=task(own,[child,leaf]);await expectText('cache-coverage','12,600 tok');
+      snapshots[ids.root]=task(own,[child,leaf]);await expectCoverage('12,600');
       await expectText('cache-note','');
       const callsBefore=metricCalls;
       const stable=await page.evaluate(async inline=>{
@@ -230,18 +238,18 @@ try {
           else history.pushState({},'', '/c/'+id);
         },{mode,id});
       };
-      await navigate(ids.child);await expectText('cache-coverage','7,100 tok');
-      await expectText('task-own','5,900 tok');await expectText('task-subagents','1,200 tok');
+      await navigate(ids.child);await expectCoverage('7,100');
+      await expectText('task-own','5,900 toks');await expectText('task-subagents','1,200 toks');
       await expectText('task-subagents-label','Subagents (1)');
       await expectText(inline?'cache-detail-rate':'cache-rate','57.4%');await expectOwn(child);
-      await navigate(ids.leaf);await expectText('cache-coverage','1,200 tok');await openCache();
+      await navigate(ids.leaf);await expectCoverage('1,200');await openCache();
       assert.equal(await scope.locator('#task-own-row').isVisible(),false);
       assert.equal(await scope.locator('#task-subagents-row').isVisible(),false);
       assert.equal(await scope.locator('#cache-note').isVisible(),false);await expectOwn(leaf);
       // Even an irrelevant zero-child aggregate cannot replace own usage.
       snapshots[ids.leaf]={...leaf,taskUsage:{...task(own,[child]).taskUsage,subagents:0}};
       const previousCalls=metricCalls;await page.waitForTimeout(3300);assert.ok(metricCalls>previousCalls);
-      await expectText('cache-coverage','1,200 tok');
+      await expectCoverage('1,200');
       assert.equal(await scope.locator('#task-own-row').isVisible(),false);
       results.push({renderer:mode,aggregateVsOwn:true,nestedChild:true,languages:['en','zh-CN','zh-TW'],loadingToReady:true,partial:true,singleSession:true,stableCachePolling:stable});
     }finally{await page.close();}

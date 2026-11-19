@@ -110,7 +110,13 @@ try{
    await mkdir(join(repo,'.data','issue24-validation'),{recursive:true});
    await page.screenshot({path:join(repo,'.data','issue24-validation',`sidebar-fixture-${lang}.png`)});
    await page.keyboard.press('Escape');
-   await page.evaluate(()=>fullView());await expectPane('aux-pane','70.0','46%');
+   await page.evaluate(()=>fullView());
+   // Full View 触发下一帧重新挂载，需等主状态栏身份完成切换后再核对。
+   await page.waitForFunction(()=>{
+    const strips=document.querySelectorAll('[data-ag-pulse-bar]');
+    return strips.length===1&&strips[0].id==='ag-pulse-status-bar';
+   });
+   await expectPane('aux-pane','70.0','46%');
    assert.equal(await bars.count(),1);assert.equal(await auxStrip.getAttribute('id'),'ag-pulse-status-bar');
    // Initial loading is also isolated, even without any previously known owner.
    await page.goto(`http://127.0.0.1:${server.address().port}/?lang=${lang}&missing=1`);
