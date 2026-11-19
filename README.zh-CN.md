@@ -33,6 +33,7 @@ git clone https://github.com/AnneHtowardshaway/agent-dashboard.git
 cd agent-dashboard
 python3 manage.py build-rust
 python3 manage.py status-hosts
+# macOS / Linux；Windows 改为运行 bin/ag-pulse.exe serve
 python3 manage.py daemon start
 ```
 
@@ -142,7 +143,8 @@ python manage.py install
    检查本机系统、宿主路径、版本及已有配置。
 2. 在源码目录使用 Python 3.10+、Node.js 24 与 Rust/Cargo，运行
    python3 manage.py build-rust。Windows 使用 python。
-3. Codex 使用 python3 manage.py daemon start，在本地统一面板验证会话数据。
+3. Codex 在 macOS/Linux 使用 python3 manage.py daemon start；Windows 使用
+   bin/ag-pulse.exe serve。在本地统一面板验证会话数据。
    反重力桌面 App 使用 python3 manage.py install，随后正常退出并重启宿主。
    独立 IDE 与 CLI 按 README 中各自的安装入口处理。
 4. 保留已有配置与统计记录，验证选定宿主的指标、刷新与恢复，报告实际结果

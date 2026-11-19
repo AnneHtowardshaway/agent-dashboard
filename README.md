@@ -33,6 +33,7 @@ git clone https://github.com/AnneHtowardshaway/agent-dashboard.git
 cd agent-dashboard
 python3 manage.py build-rust
 python3 manage.py status-hosts
+# macOS / Linux; on Windows run bin/ag-pulse.exe serve instead
 python3 manage.py daemon start
 ```
 
@@ -144,8 +145,9 @@ Repository: https://github.com/AnneHtowardshaway/agent-dashboard
    entrypoint. Inspect the OS, host path/version and existing configuration.
 2. Build this checkout with Python 3.10+, Node.js 24 and Rust/Cargo using
    python3 manage.py build-rust. Use python on Windows.
-3. For Codex, start python3 manage.py daemon start and verify local sessions
-   in the unified dashboard. For the Antigravity desktop App, run
+3. For Codex on macOS/Linux, start python3 manage.py daemon start; on Windows,
+   run bin/ag-pulse.exe serve. Verify local sessions in the unified dashboard.
+   For the Antigravity desktop App, run
    python3 manage.py install and restart the host normally. Use the separate
    IDE or CLI instructions for those adapters.
 4. Preserve existing settings and statistics. Verify metrics, refresh and
