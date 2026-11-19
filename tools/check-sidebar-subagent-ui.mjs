@@ -52,7 +52,26 @@ try{
    const expectMetrics=(tps,context)=>expectPane('aux-pane',tps,context);
    const expectDensity=async density=>{
     // 指标渲染与紧凑布局动画分属不同帧，等待实际布局状态完成。
-    await page.waitForFunction(density=>document.querySelector('#aux-pane [data-ag-pulse-bar]')?.dataset.density===density,density);
+    try{
+     await page.waitForFunction(density=>document.querySelector('#aux-pane [data-ag-pulse-bar]')?.dataset.density===density,density);
+    }catch(error){
+     const layout=await auxStrip.evaluate(element=>{
+      const rect=node=>node?.getBoundingClientRect().toJSON();
+      const measure=()=>{
+       const bounds=element.getBoundingClientRect(),bar=element.shadowRoot.querySelector('.bar'),branch=element.previousElementSibling;
+       const overlaps=Array.from(document.querySelectorAll('button,[role="button"],a[href],input,select,[contenteditable="true"]')).filter(control=>{
+        const other=control.getBoundingClientRect();
+        return !control.closest('[hidden],[inert]')&&getComputedStyle(control).visibility!=='hidden'&&Math.min(bounds.right,other.right)-Math.max(bounds.left,other.left)>1&&Math.min(bounds.bottom,other.bottom)-Math.max(bounds.top,other.top)>1;
+       }).map(control=>({tag:control.tagName,id:control.id,testid:control.dataset.testid,rect:rect(control)}));
+       return {node:rect(element),row:rect(element.parentElement),branch:rect(branch),icons:Array.from(branch?.querySelectorAll('svg')||[]).map(rect),scrollWidth:bar.scrollWidth,clientWidth:bar.clientWidth,room:getComputedStyle(element).getPropertyValue('--pulse-native-room'),font:getComputedStyle(element).font,overlaps};
+      };
+      const compact=measure(),wasIcons=element.classList.contains('icons-only');
+      element.classList.remove('icons-only');const full=measure();
+      if(wasIcons)element.classList.add('icons-only');
+      return {density:element.dataset.density,layout:element.dataset.layout,scope:element.dataset.scope,compact,full};
+     });
+     throw new Error(`Expected sidebar density ${density}: ${JSON.stringify(layout)}`,{cause:error});
+    }
     assert.equal(await auxStrip.getAttribute('data-density'),density);
    };
    await expectPane('main-pane','50.0','12%');
