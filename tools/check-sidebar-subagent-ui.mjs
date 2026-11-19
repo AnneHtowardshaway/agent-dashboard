@@ -50,6 +50,11 @@ try{
     catch(error){throw new Error(`Expected ${paneId} ${tps} tok/s and ${context}: `+JSON.stringify(await page.locator(`#${paneId} [data-ag-pulse-bar]`).evaluate(e=>({scope:e.dataset.scope,id:e.id,tps:e.shadowRoot.getElementById('tps').textContent,context:e.shadowRoot.getElementById('context-percent').textContent,calls:window.calls.slice(-5)}))),{cause:error});}
    };
    const expectMetrics=(tps,context)=>expectPane('aux-pane',tps,context);
+   const expectDensity=async density=>{
+    // 指标渲染与紧凑布局动画分属不同帧，等待实际布局状态完成。
+    await page.waitForFunction(density=>document.querySelector('#aux-pane [data-ag-pulse-bar]')?.dataset.density===density,density);
+    assert.equal(await auxStrip.getAttribute('data-density'),density);
+   };
    await expectPane('main-pane','50.0','12%');
    await expectMetrics('90.0','87%');
    assert.equal(await bars.count(),2,'Main and sidebar composers keep simultaneous strips');
@@ -74,11 +79,11 @@ try{
     await page.evaluate(mode=>{calls=[];const marker=document.getElementById('sidebar-transcript');if(mode==='ambiguous'){const copy=marker.cloneNode(true);copy.id='decoy-visible';copy.dataset.cascadeId=ids.other;document.getElementById('sidebar-content').append(copy);}else if(mode==='invalid')marker.dataset.cascadeId='not-a-conversation';else if(mode==='missing-id')marker.removeAttribute('data-cascade-id');else{window.detachedMarker=marker;marker.remove();}},mode);
     await expectMetrics('—','—');
     await expectPane('main-pane','50.0','12%');
-    assert.equal(await auxStrip.getAttribute('data-density'),'icons');
+    await expectDensity('icons');
     assert.equal(await page.evaluate(()=>calls.filter(call=>!call.composerModel).every(call=>call.conversationId!==ids.main)),true,mode+' must not borrow main metrics');
     await page.evaluate(mode=>{if(mode==='ambiguous')document.getElementById('decoy-visible').remove();else if(mode==='missing-marker'){const replacement=window.detachedMarker.cloneNode(true);replacement.dataset.cascadeId=ids.child;document.getElementById('message-wrapper').append(replacement);delete window.detachedMarker;}else document.getElementById('sidebar-transcript').dataset.cascadeId=ids.child;},mode);
     await expectMetrics('90.0','87%');
-    assert.equal(await auxStrip.getAttribute('data-density'),'full');
+    await expectDensity('full');
    }
    await page.evaluate(()=>document.querySelectorAll('[id^="decoy-"]').forEach(element=>element.remove()));
    // The transcript is a boundary, even with many descendant-looking IDs.
@@ -123,7 +128,7 @@ try{
    await mainStrip.waitFor();await auxStrip.waitFor();
    await expectPane('main-pane','50.0','12%');await expectMetrics('—','—');
    assert.equal(await auxStrip.getAttribute('data-scope'),'subagent');
-   assert.equal(await auxStrip.getAttribute('data-density'),'icons');
+   await expectDensity('icons');
    assert.equal(await bars.count(),2);
    await settle();assert.equal(await page.evaluate(()=>calls.some(call=>!call.composerModel&&call.conversationId===null)&&calls.filter(call=>!call.composerModel).every(call=>call.conversationId!==ids.main)),true,'Unknown initial auxiliary owner must not use main route');
    // Side Question pane with model selector: empty starts with 3 compact icons and spring-expands when conversation data arrives.
@@ -137,13 +142,13 @@ try{
    assert.equal(await bars.count(),2);
    await expectPane('main-pane','50.0','12%');
    await expectMetrics('—','—');
-   assert.equal(await auxStrip.getAttribute('data-density'),'icons');
+   await expectDensity('icons');
    assert.equal(await auxStrip.locator('.bar .chip:visible').count(),3);
    await page.evaluate(()=>focusMain());await settle();
    assert.equal(await bars.count(),2,'Focusing back on main preserves Side Question strip');
    await page.evaluate(id=>document.getElementById('side-question-view').setAttribute('data-cascade-id',id),ids.child);
    await expectMetrics('90.0','87%');
-   assert.equal(await auxStrip.getAttribute('data-density'),'full');
+   await expectDensity('full');
    await expectPane('main-pane','50.0','12%');
    await page.screenshot({path:join(repo,'.data','issue24-validation',`side-question-both-${lang}.png`)});
    // Closing an unresolved/side pane returns to single main composer cleanly.
