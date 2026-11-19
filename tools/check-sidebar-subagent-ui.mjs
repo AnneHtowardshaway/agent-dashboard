@@ -38,7 +38,9 @@ const browser=await chromium.launch(process.platform==='win32'&&!process.env.CI?
 const errors=[],results=[];
 try{
  for(const lang of ['en','zh']){
-  const page=await browser.newPage({viewport:{width:1440,height:900}});page.on('pageerror',error=>errors.push(error.message));
+  // 展开场景为各平台系统字体留出余量；窄屏回退在下方单独验收。
+  const wideViewport={width:1600,height:900};
+  const page=await browser.newPage({viewport:wideViewport});page.on('pageerror',error=>errors.push(error.message));
   try{
    await page.goto(`http://127.0.0.1:${server.address().port}/?lang=${lang}`);
    const bars=page.locator('[data-ag-pulse-bar]');
@@ -76,6 +78,12 @@ try{
    };
    await expectPane('main-pane','50.0','12%');
    await expectMetrics('90.0','87%');
+   await expectDensity('full');
+   // 宽度不足时安全收起，恢复空间后展开，指标始终属于同一个侧栏会话。
+   await page.setViewportSize({width:1080,height:900});
+   await expectDensity('icons');await expectMetrics('90.0','87%');
+   await page.setViewportSize(wideViewport);
+   await expectDensity('full');await expectMetrics('90.0','87%');
    assert.equal(await bars.count(),2,'Main and sidebar composers keep simultaneous strips');
    assert.equal(await mainStrip.getAttribute('id'),'ag-pulse-status-bar');
    assert.equal(await mainStrip.getAttribute('lang'),lang==='en'?'en':'zh-CN');
@@ -174,7 +182,7 @@ try{
    await page.evaluate(()=>{document.getElementById('aux-pane').remove();focusMain();});
    await page.waitForFunction(()=>document.querySelectorAll('[data-ag-pulse-bar]').length===1);
    await expectPane('main-pane','50.0','12%');
-   results.push({language:lang,simultaneousBars:true,sideQuestionCompactAndExpand:true,siblingOwner:true,wrappedOwner:true,focusSwitch:true,routeUnchanged:true,hiddenOwnersIgnored:true,invalidAndMissingOwnersIsolated:true,ambiguousOwnersIsolated:true,longTranscriptPruned:true,wideAndDeepOwnershipBounded:true,lateMainResponseIsolated:true,childSwitch:true,usageEntry:true,fullView:true,initialLoadingIsolated:true,sidebarClose:true});
+   results.push({language:lang,simultaneousBars:true,densityResize:true,sideQuestionCompactAndExpand:true,siblingOwner:true,wrappedOwner:true,focusSwitch:true,routeUnchanged:true,hiddenOwnersIgnored:true,invalidAndMissingOwnersIsolated:true,ambiguousOwnersIsolated:true,longTranscriptPruned:true,wideAndDeepOwnershipBounded:true,lateMainResponseIsolated:true,childSwitch:true,usageEntry:true,fullView:true,initialLoadingIsolated:true,sidebarClose:true});
   }finally{await page.close();}
  }
  assert.deepEqual(errors,[]);console.log(JSON.stringify({cases:results,pageErrors:errors},null,2));
