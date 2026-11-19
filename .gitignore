@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+node_modules/
+dist/
+.data/
+*.log
+.env*
+*.asar
+*.original
+settings.json
+patch.json
+target/
+
+# 本机数据、内部文档及编译产物
+/docs/
+/bin/ag-pulse
+/bin/ag-pulse.exe
+.DS_Store
+*.vsix
+*.zip
+*.zip.sha256
+*.staging
+.idea/
+.vscode/
+.venv/
